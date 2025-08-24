@@ -1,0 +1,70 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+
+import * as React from "react";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { FormControl } from "../ui/form";
+import { ControllerRenderProps } from "react-hook-form";
+import { jobListingDurationPricing } from "@/app/utils/pricingTiers";
+
+interface JobListingDurationSelectorProps {
+  field: ControllerRenderProps<any, "listingDuration">;
+}
+
+// Currency formatter for LKR (Sri Lankan Rupees)
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat("en-LK", {
+    style: "currency",
+    currency: "LKR",
+    minimumFractionDigits: 2,
+  }).format(amount);
+
+export function JobListingDurationSelector({ field }: JobListingDurationSelectorProps) {
+  return (
+    <FormControl>
+      <RadioGroup
+        value={String(field.value ?? "")}
+        onValueChange={(value) => field.onChange(Number(value))}
+      >
+        <div className="grid gap-4">
+          {jobListingDurationPricing.map(({ days, price, description }) => (
+            <div key={days} className="relative">
+              <RadioGroupItem
+                value={String(days)}
+                id={`duration-${days}`}
+                className="peer sr-only"
+              />
+              <Label
+                htmlFor={`duration-${days}`}
+                className="flex flex-col cursor-pointer"
+              >
+                <Card
+                  className={`p-4 border-2 transition-all ${
+                    field.value === days
+                      ? "border-primary bg-primary/10"
+                      : "hover:bg-secondary/50"
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-lg">{days} Days</p>
+                      <p className="text-sm text-muted-foreground">{description}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-xl">{formatCurrency(price)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatCurrency(price / days)}/day
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </Label>
+            </div>
+          ))}
+        </div>
+      </RadioGroup>
+    </FormControl>
+  );
+}

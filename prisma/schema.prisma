@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String     @id @default(cuid())
+  name                String?
+  email               String     @unique
+  emailVerified       DateTime?
+  image               String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  onboardingCompleted Boolean    @default(false)
+  userType            UserType?
+  accounts            Account[]
+  Company             Company?
+  JobSeeker           JobSeeker?
+  sessions            Session[]
+
+  stripeCustomerID String? @unique
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  location  String
+  about     String
+  logo      String
+  website   String
+  xAccount  String?
+
+  JobPost JobPost[]
+
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model JobSeeker {
+  id        String   @id @default(uuid())
+  name      String
+  about     String
+  resume    String
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+enum UserType {
+  Company
+  JobSeeker
+}
+
+// model JobPost {
+//   id String @id @default(uuid())
+
+//   jobTitle        String
+//   employmentType  String
+//   location        String
+//   salaryFrom      Int
+//   salaryTo        Int
+//   jobDescription  String
+//   listingDuration Int
+//   benefits        String[]
+
+//   status       JobPostStatus @default(DRAFT)
+//   // applications Int           @default(0)
+
+//   company   Company @relation(fields: [companyId], references: [id])
+//   companyId String
+
+//   createdAt    DateTime       @default(now())
+//   updatedAt    DateTime       @updatedAt
+//   // SavedJobPost SavedJobPost[]
+// }
+
+// enum JobPostStatus {
+//   DRAFT
+//   ACTIVE
+//   EXPIRED
+// }
+
+
+model JobPost {
+  id String @id @default(uuid())
+
+  jobTitle        String
+  employmentType  String
+  location        String
+  salaryFrom      Int
+  salaryTo        Int
+  jobDescription  String
+  listingDuration Int
+  benefits        String[]
+
+  status       JobPostStatus @default(ACTIVE) //changed if you need pyemnts
+  // applications Int           @default(0)
+
+  company   Company @relation(fields: [companyId], references: [id])
+  companyId String
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  // SavedJobPost SavedJobPost[]
+}
+
+enum JobPostStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+}
+
+model Car {
+  id           Int     @id @default(autoincrement())
+  year         Int
+  make         String
+  title        String
+  model        String
+  price        Float
+  city         String
+  state        String
+  odometer     Int
+  transmission String
+  body         String
+  fuel_type    String
+  full_path    String
+  condition    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
