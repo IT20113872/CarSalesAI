@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+
 import { prisma } from "@/app/utils/db";
 
 export async function GET(req: Request) {
@@ -42,5 +42,5 @@ export async function GET(req: Request) {
     }),
   ]);
 
-  return NextResponse.json({ cars, total, page, limit });
+  // return NextResponse.json({ cars, total, page, limit });
 }
