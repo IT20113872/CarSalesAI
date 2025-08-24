@@ -1,0 +1,5 @@
+# Ignore auto-generated files
+src/generated/
+.next/
+dist/
+build/
