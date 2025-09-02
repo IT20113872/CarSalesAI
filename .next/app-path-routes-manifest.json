@@ -1,0 +1,16 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/api/cars/route": "/api/cars",
+  "/favicon.ico/route": "/favicon.ico",
+  "/api/webhook/stripe/route": "/api/webhook/stripe",
+  "/api/auth/[...nextauth]/route": "/api/auth/[...nextauth]",
+  "/api/uploadthing/route": "/api/uploadthing",
+  "/payment/cancel/page": "/payment/cancel",
+  "/login/page": "/login",
+  "/name/page": "/name",
+  "/onboarding/page": "/onboarding",
+  "/payment/success/page": "/payment/success",
+  "/(mainLayout)/post-job/page": "/post-job",
+  "/(mainLayout)/results/page": "/results",
+  "/(mainLayout)/page": "/"
+}
