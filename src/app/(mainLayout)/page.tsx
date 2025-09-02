@@ -1,3 +1,685 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Car, MapPin, DollarSign, X } from "lucide-react";
+
+// Filters arrays
+const states = ["All", "ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
+const makes = ["Toyota", "Ford", "Honda", "BMW", "Mercedes", "Tesla"];
+const models = ["Corolla", "Camry", "Civic", "Mustang", "Model 3", "X5"];
+const cities = ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide"];
+const bodyTypes = ["Sedan", "SUV", "Hatchback", "Coupe", "Convertible"];
+const minPrices = ["10000", "20000", "30000", "40000", "50000"];
+const maxPrices = ["50000", "100000", "150000", "200000", "250000"];
+
+// Background images
+const bgImages = ["/background.png", "/background (2).png", "/backgroundx.png"];
+
+// Type for filters
+export type Filters = {
+  make?: string;
+  model?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  city?: string;
+  bodyType?: string;
+};
+
+export default function SearchPage() {
+  const router = useRouter();
+
+  const [activeState, setActiveState] = useState("All");
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [city, setCity] = useState("");
+  const [bodyType, setBodyType] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [aiSearch, setAiSearch] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [bgIndex, setBgIndex] = useState(0);
+  const [totalCars, setTotalCars] = useState<number | null>(null);
+
+  // AI mock suggestions
+  useEffect(() => {
+    if (aiSearch.length > 2) {
+      const mockSuggestions = [
+        `Used ${aiSearch} in ${city || "Sydney"}`,
+        `${aiSearch} under ${maxPrice || "100000"}`,
+        `New ${aiSearch} ${bodyType || "Sedan"}`,
+      ].filter((s) => s.toLowerCase().includes(aiSearch.toLowerCase()));
+      setSuggestions(mockSuggestions.slice(0, 3));
+    } else {
+      setSuggestions([]);
+    }
+  }, [aiSearch, city, maxPrice, bodyType]);
+
+  // Background slideshow every 5s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBgIndex((prev) => (prev + 1) % bgImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch total car count based on filters
+  useEffect(() => {
+    const fetchTotalCars = async () => {
+      try {
+        const query = new URLSearchParams();
+        if (activeState !== "All") query.append("state", activeState);
+        if (make) query.append("make", make);
+        if (model) query.append("model", model);
+        if (city) query.append("city", city);
+        if (bodyType) query.append("bodyType", bodyType);
+        if (minPrice) query.append("minPrice", minPrice);
+        if (maxPrice) query.append("maxPrice", maxPrice);
+
+        const res = await fetch(`/api/cars?${query.toString()}`);
+        const data = await res.json();
+        setTotalCars(data.totalCount || 0);
+      } catch (err) {
+        console.error(err);
+        setTotalCars(null);
+      }
+    };
+
+    fetchTotalCars();
+  }, [activeState, make, model, city, bodyType, minPrice, maxPrice]);
+
+  // Parse AI search input into filters
+  const parseAiSearch = (query: string): Partial<Filters> => {
+    const lowerQuery = query.toLowerCase();
+    const parsed: Partial<Filters> = {};
+
+    for (const m of makes) if (lowerQuery.includes(m.toLowerCase())) parsed.make = m;
+    for (const mod of models) if (lowerQuery.includes(mod.toLowerCase())) parsed.model = mod;
+
+    const cityMatch = lowerQuery.match(/in\s+(\w+)/);
+    if (cityMatch && cities.includes(cityMatch[1].charAt(0).toUpperCase() + cityMatch[1].slice(1))) {
+      parsed.city = cityMatch[1].charAt(0).toUpperCase() + cityMatch[1].slice(1);
+    }
+
+    for (const bt of bodyTypes) if (lowerQuery.includes(bt.toLowerCase())) parsed.bodyType = bt;
+
+    const underMatch = lowerQuery.match(/under\s+(\d+)/);
+    if (underMatch) parsed.maxPrice = underMatch[1];
+
+    const overMatch = lowerQuery.match(/(over|above)\s+(\d+)/);
+    if (overMatch) parsed.minPrice = overMatch[2];
+
+    const betweenMatch = lowerQuery.match(/between\s+(\d+)\s+and\s+(\d+)/);
+    if (betweenMatch) {
+      parsed.minPrice = betweenMatch[1];
+      parsed.maxPrice = betweenMatch[2];
+    }
+
+    return parsed;
+  };
+
+  const handleSubmit = () => {
+    setSuggestions([]);
+
+    let mergedFilters = { make, model, city, bodyType, minPrice, maxPrice };
+    if (aiSearch) {
+      const parsed = parseAiSearch(aiSearch);
+      mergedFilters = { ...mergedFilters, ...parsed };
+      setMake(mergedFilters.make || "");
+      setModel(mergedFilters.model || "");
+      setCity(mergedFilters.city || "");
+      setBodyType(mergedFilters.bodyType || "");
+      setMinPrice(mergedFilters.minPrice || "");
+      setMaxPrice(mergedFilters.maxPrice || "");
+    }
+
+    const queryParams = new URLSearchParams();
+    if (activeState !== "All") queryParams.append("state", activeState);
+    if (mergedFilters.make) queryParams.append("make", mergedFilters.make);
+    if (mergedFilters.model) queryParams.append("model", mergedFilters.model);
+    if (mergedFilters.city) queryParams.append("city", mergedFilters.city);
+    if (mergedFilters.bodyType) queryParams.append("bodyType", mergedFilters.bodyType);
+    if (mergedFilters.minPrice) queryParams.append("minPrice", mergedFilters.minPrice);
+    if (mergedFilters.maxPrice) queryParams.append("maxPrice", mergedFilters.maxPrice);
+
+    router.push(`/results?${queryParams.toString()}`);
+  };
+
+  const handleShowAll = () => router.push("/results");
+
+  const handleSuggestionClick = (s: string) => {
+    setAiSearch(s);
+    setSuggestions([]);
+  };
+
+  const handleClearFilters = () => {
+    setActiveState("All");
+    setMake("");
+    setModel("");
+    setCity("");
+    setBodyType("");
+    setMinPrice("");
+    setMaxPrice("");
+    setAiSearch("");
+    setSuggestions([]);
+    router.push("/results");
+  };
+
+  const activeFilters = [
+    activeState !== "All" && { label: activeState, setter: setActiveState },
+    make && { label: make, setter: setMake },
+    model && { label: model, setter: setModel },
+    city && { label: city, setter: setCity },
+    bodyType && { label: bodyType, setter: setBodyType },
+    minPrice && { label: `Min $${minPrice}`, setter: setMinPrice },
+    maxPrice && { label: `Max $${maxPrice}`, setter: setMaxPrice },
+  ].filter(Boolean) as { label: string; setter: (v: string) => void }[];
+
+  return (
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Background slideshow */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={bgIndex}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1 }}
+          className="absolute inset-0 -z-10 w-full h-full"
+        >
+          <Image src={bgImages[bgIndex]} alt={`Background ${bgIndex}`} fill style={{ objectFit: "cover" }} priority />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/40"></div>
+
+      {/* Main card */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.97 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="relative w-full max-w-4xl backdrop-blur-xl bg-white/40 dark:bg-gray-900/50 rounded-3xl shadow-2xl p-8 border border-white/20 z-10"
+      >
+        <h1 className="text-3xl font-extrabold text-center text-gray-100 mb-8">
+          Find Your Dream Vehicle
+        </h1>
+
+        {/* States */}
+        <div className="flex flex-wrap justify-center gap-2 mb-6">
+          {states.map((state) => (
+            <button
+              key={state}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                activeState === state
+                  ? "bg-red-500 text-white"
+                  : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
+              }`}
+              onClick={() => setActiveState(state)}
+            >
+              {state}
+            </button>
+          ))}
+        </div>
+
+        {/* Filters Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {([
+            ["Make", makes, make, setMake, Car],
+            ["Model", models, model, setModel, Car],
+            ["City", cities, city, setCity, MapPin],
+            ["Body Type", bodyTypes, bodyType, setBodyType, Car],
+            ["Min. Price", minPrices, minPrice, setMinPrice, DollarSign],
+            ["Max. Price", maxPrices, maxPrice, setMaxPrice, DollarSign],
+          ] as [string, string[], string, React.Dispatch<React.SetStateAction<string>>, any][]).map(
+            ([label, options, value, setter, Icon]) => (
+              <div key={label} className="relative">
+                <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-200" size={18} />
+                <select
+                  value={value}
+                  onChange={(e) => setter(e.target.value)}
+                  className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="">{label}</option>
+                  {options.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )
+          )}
+        </div>
+
+        {/* Active Filters */}
+        {activeFilters.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            {activeFilters.map((f, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-1 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-200 px-3 py-1 rounded-full text-xs font-medium"
+              >
+                {f.label}
+                <X size={14} className="cursor-pointer" onClick={() => f.setter("")} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* AI Search */}
+        <div className="relative mb-6">
+          <div className="flex gap-3">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-200" size={18} />
+              <input
+                type="text"
+                placeholder="AI Search e.g. 'Red Tesla in Sydney'"
+                value={aiSearch}
+                onChange={(e) => setAiSearch(e.target.value)}
+                className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+            <button
+              className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+              onClick={handleClearFilters}
+            >
+              Clear Filters
+            </button>
+            <button
+              className="bg-red-500 hover:bg-red-600 text-white px-6 rounded-lg text-sm font-semibold"
+              onClick={handleSubmit}
+            >
+              Search
+            </button>
+          </div>
+
+          {/* Suggestions */}
+          <AnimatePresence>
+            {suggestions.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                className="absolute z-20 w-full mt-2 bg-white/90 dark:bg-gray-800/90 rounded-lg shadow-lg border border-gray-300 dark:border-gray-700"
+              >
+                {suggestions.map((s, i) => (
+                  <div
+                    key={i}
+                    onClick={() => handleSuggestionClick(s)}
+                    className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-800 dark:text-white"
+                  >
+                    {s}
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Show All Cars Button with total count */}
+        <button
+          className="w-full bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600"
+          onClick={handleShowAll}
+        >
+          Show All Cars {totalCars !== null ? `(${totalCars})` : ""}
+        </button>
+      </motion.div>
+    </div>
+  );
+}
+
+
+
+// // src\app\(mainLayout)\page.tsx
+// "use client";
+
+// import { useState, useEffect } from "react";
+// import { useRouter } from "next/navigation";
+// import Image from "next/image";
+// import { motion, AnimatePresence } from "framer-motion";
+// import { Search, Car, MapPin, DollarSign, X } from "lucide-react";
+
+// // Filters arrays
+// const states = ["All", "ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
+// const makes = ["Toyota", "Ford", "Honda", "BMW", "Mercedes", "Tesla"];
+// const models = ["Corolla", "Camry", "Civic", "Mustang", "Model 3", "X5"];
+// const cities = ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide"];
+// const bodyTypes = ["Sedan", "SUV", "Hatchback", "Coupe", "Convertible"];
+// const minPrices = ["10000", "20000", "30000", "40000", "50000"];
+// const maxPrices = ["50000", "100000", "150000", "200000", "250000"];
+
+// // Background images (rename to avoid spaces)
+// const bgImages = ["/background.png", "/background (2).png", "/backgroundx.png"];
+
+// // Type for filters (moved here for reuse)
+// export type Filters = {
+//   make?: string;
+//   model?: string;
+//   minPrice?: string;
+//   maxPrice?: string;
+//   city?: string;
+//   bodyType?: string;
+// };
+
+// export default function SearchPage() {
+//   const router = useRouter();
+//   const [activeState, setActiveState] = useState("All");
+//   const [make, setMake] = useState("");
+//   const [model, setModel] = useState("");
+//   const [city, setCity] = useState("");
+//   const [bodyType, setBodyType] = useState("");
+//   const [minPrice, setMinPrice] = useState("");
+//   const [maxPrice, setMaxPrice] = useState("");
+//   const [aiSearch, setAiSearch] = useState("");
+//   const [suggestions, setSuggestions] = useState<string[]>([]);
+//   const [bgIndex, setBgIndex] = useState(0);
+
+//   // AI mock suggestions
+//   useEffect(() => {
+//     if (aiSearch.length > 2) {
+//       const mockSuggestions = [
+//         `Used ${aiSearch} in ${city || "Sydney"}`,
+//         `${aiSearch} under ${maxPrice || "100000"}`,
+//         `New ${aiSearch} ${bodyType || "Sedan"}`,
+//       ].filter((s) => s.toLowerCase().includes(aiSearch.toLowerCase()));
+//       setSuggestions(mockSuggestions.slice(0, 3));
+//     } else {
+//       setSuggestions([]);
+//     }
+//   }, [aiSearch, city, maxPrice, bodyType]);
+
+//   // Background slideshow every 5s
+//   useEffect(() => {
+//     const interval = setInterval(() => {
+//       setBgIndex((prev) => (prev + 1) % bgImages.length);
+//     }, 5000);
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   // Function to parse AI search into filters
+//   const parseAiSearch = (query: string): Partial<Filters> => {
+//     const lowerQuery = query.toLowerCase();
+//     const parsed: Partial<Filters> = {};
+
+//     // Extract make/model (simple keyword match from your lists)
+//     for (const m of makes) {
+//       if (lowerQuery.includes(m.toLowerCase())) {
+//         parsed.make = m;
+//         break;
+//       }
+//     }
+//     for (const mod of models) {
+//       if (lowerQuery.includes(mod.toLowerCase())) {
+//         parsed.model = mod;
+//         break;
+//       }
+//     }
+
+//     // Extract city (e.g., "in sydney")
+//     const cityMatch = lowerQuery.match(/in\s+(\w+)/);
+//     if (cityMatch && cities.includes(cityMatch[1].charAt(0).toUpperCase() + cityMatch[1].slice(1))) {
+//       parsed.city = cityMatch[1].charAt(0).toUpperCase() + cityMatch[1].slice(1);
+//     }
+
+//     // Extract body type
+//     for (const bt of bodyTypes) {
+//       if (lowerQuery.includes(bt.toLowerCase())) {
+//         parsed.bodyType = bt;
+//         break;
+//       }
+//     }
+
+//     // Extract prices (e.g., "under 50000", "over 10000", "between 20000 and 40000")
+//     const underMatch = lowerQuery.match(/under\s+(\d+)/);
+//     if (underMatch) parsed.maxPrice = underMatch[1];
+
+//     const overMatch = lowerQuery.match(/(over|above)\s+(\d+)/);
+//     if (overMatch) parsed.minPrice = overMatch[2];
+
+//     const betweenMatch = lowerQuery.match(/between\s+(\d+)\s+and\s+(\d+)/);
+//     if (betweenMatch) {
+//       parsed.minPrice = betweenMatch[1];
+//       parsed.maxPrice = betweenMatch[2];
+//     }
+
+//     // You can add more rules, e.g., for color (if added to filters), year, etc.
+//     // For colors like "red", you'd need to add a color filter to your app and parsing logic.
+
+//     return parsed;
+//   };
+
+//   const handleSubmit = () => {
+//     setSuggestions([]);
+
+//     // If aiSearch is provided, parse it and merge with existing filters
+//     let mergedFilters = { make, model, city, bodyType, minPrice, maxPrice };
+//     if (aiSearch) {
+//       const parsed = parseAiSearch(aiSearch);
+//       mergedFilters = { ...mergedFilters, ...parsed }; // Merge, AI overrides manual if conflict
+//       // Update states for UI feedback
+//       setMake(mergedFilters.make || "");
+//       setModel(mergedFilters.model || "");
+//       setCity(mergedFilters.city || "");
+//       setBodyType(mergedFilters.bodyType || "");
+//       setMinPrice(mergedFilters.minPrice || "");
+//       setMaxPrice(mergedFilters.maxPrice || "");
+//     }
+
+//     const queryParams = new URLSearchParams();
+//     if (activeState !== "All") queryParams.append("state", activeState);
+//     if (mergedFilters.make) queryParams.append("make", mergedFilters.make);
+//     if (mergedFilters.model) queryParams.append("model", mergedFilters.model);
+//     if (mergedFilters.city) queryParams.append("city", mergedFilters.city);
+//     if (mergedFilters.bodyType) queryParams.append("bodyType", mergedFilters.bodyType);
+//     if (mergedFilters.minPrice) queryParams.append("minPrice", mergedFilters.minPrice);
+//     if (mergedFilters.maxPrice) queryParams.append("maxPrice", mergedFilters.maxPrice);
+//     // No need for ai param anymore, since we've parsed it
+
+//     router.push(`/results?${queryParams.toString()}`);
+//   };
+
+//   const handleShowAll = () => router.push("/results");
+
+//   const handleSuggestionClick = (s: string) => {
+//     setAiSearch(s);
+//     setSuggestions([]);
+//   };
+
+//   const handleClearFilters = () => {
+//     setActiveState("All");
+//     setMake("");
+//     setModel("");
+//     setCity("");
+//     setBodyType("");
+//     setMinPrice("");
+//     setMaxPrice("");
+//     setAiSearch("");
+//     setSuggestions([]);
+//     router.push("/results");
+//   };
+
+//   const activeFilters = [
+//     activeState !== "All" && { label: activeState, setter: setActiveState },
+//     make && { label: make, setter: setMake },
+//     model && { label: model, setter: setModel },
+//     city && { label: city, setter: setCity },
+//     bodyType && { label: bodyType, setter: setBodyType },
+//     minPrice && { label: `Min $${minPrice}`, setter: setMinPrice },
+//     maxPrice && { label: `Max $${maxPrice}`, setter: setMaxPrice },
+//   ].filter(Boolean) as { label: string; setter: (v: string) => void }[];
+
+//   return (
+//     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+//       {/* Background slideshow */}
+//       <AnimatePresence mode="wait">
+//         <motion.div
+//           key={bgIndex}
+//           initial={{ opacity: 0 }}
+//           animate={{ opacity: 1 }}
+//           exit={{ opacity: 0 }}
+//           transition={{ duration: 1 }}
+//           className="absolute inset-0 -z-10 w-full h-full"
+//         >
+//           <Image
+//             src={bgImages[bgIndex]}
+//             alt={`Background ${bgIndex}`}
+//             fill
+//             style={{ objectFit: "cover" }}
+//             priority
+//           />
+//         </motion.div>
+//       </AnimatePresence>
+
+//       {/* Dark overlay */}
+//       <div className="absolute inset-0 bg-black/40"></div>
+
+//       {/* Main card */}
+//       <motion.div
+//         initial={{ opacity: 0, scale: 0.97 }}
+//         animate={{ opacity: 1, scale: 1 }}
+//         transition={{ duration: 0.3 }}
+//         className="relative w-full max-w-4xl backdrop-blur-xl bg-white/40 dark:bg-gray-900/50 rounded-3xl shadow-2xl p-8 border border-white/20 z-10"
+//       >
+//         <h1 className="text-3xl font-extrabold text-center text-gray-100 mb-8">
+//           Find Your Dream Vehicle
+//         </h1>
+
+//         {/* States */}
+//         <div className="flex flex-wrap justify-center gap-2 mb-6">
+//           {states.map((state) => (
+//             <button
+//               key={state}
+//               className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+//                 activeState === state
+//                   ? "bg-red-500 text-white"
+//                   : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
+//               }`}
+//               onClick={() => setActiveState(state)}
+//             >
+//               {state}
+//             </button>
+//           ))}
+//         </div>
+
+//         {/* Filters Grid */}
+//         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+//           {([
+//             ["Make", makes, make, setMake, Car],
+//             ["Model", models, model, setModel, Car],
+//             ["City", cities, city, setCity, MapPin],
+//             ["Body Type", bodyTypes, bodyType, setBodyType, Car],
+//             ["Min. Price", minPrices, minPrice, setMinPrice, DollarSign],
+//             ["Max. Price", maxPrices, maxPrice, setMaxPrice, DollarSign],
+//           ] as [string, string[], string, React.Dispatch<React.SetStateAction<string>>, any][]).map(
+//             ([label, options, value, setter, Icon]) => (
+//               <div key={label} className="relative">
+//                 <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-200" size={18} />
+//                 <select
+//                   value={value}
+//                   onChange={(e) => setter(e.target.value)}
+//                   className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500"
+//                 >
+//                   <option value="">{label}</option>
+//                   {options.map((opt) => (
+//                     <option key={opt} value={opt}>
+//                       {opt}
+//                     </option>
+//                   ))}
+//                 </select>
+//               </div>
+//             )
+//           )}
+//         </div>
+
+//         {/* Active Filters */}
+//         {activeFilters.length > 0 && (
+//           <div className="flex flex-wrap gap-2 mb-6">
+//             {activeFilters.map((f, i) => (
+//               <div
+//                 key={i}
+//                 className="flex items-center gap-1 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-200 px-3 py-1 rounded-full text-xs font-medium"
+//               >
+//                 {f.label}
+//                 <X size={14} className="cursor-pointer" onClick={() => f.setter("")} />
+//               </div>
+//             ))}
+//           </div>
+//         )}
+
+//         {/* AI Search */}
+//         <div className="relative mb-6">
+//           <div className="flex gap-3">
+//             <div className="relative flex-grow">
+//               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-200" size={18} />
+//               <input
+//                 type="text"
+//                 placeholder="AI Search e.g. 'Red Tesla in Sydney'"
+//                 value={aiSearch}
+//                 onChange={(e) => setAiSearch(e.target.value)}
+//                 className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500"
+//               />
+//             </div>
+//             <button
+//               className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+//               onClick={handleClearFilters}
+//             >
+//               Clear Filters
+//             </button>
+//             <button
+//               className="bg-red-500 hover:bg-red-600 text-white px-6 rounded-lg text-sm font-semibold"
+//               onClick={handleSubmit}
+//             >
+//               Search
+//             </button>
+//           </div>
+
+//           {/* Suggestions */}
+//           <AnimatePresence>
+//             {suggestions.length > 0 && (
+//               <motion.div
+//                 initial={{ opacity: 0, y: -6 }}
+//                 animate={{ opacity: 1, y: 0 }}
+//                 exit={{ opacity: 0, y: -6 }}
+//                 className="absolute z-20 w-full mt-2 bg-white/90 dark:bg-gray-800/90 rounded-lg shadow-lg border border-gray-300 dark:border-gray-700"
+//               >
+//                 {suggestions.map((s, i) => (
+//                   <div
+//                     key={i}
+//                     onClick={() => handleSuggestionClick(s)}
+//                     className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-800 dark:text-white"
+//                   >
+//                     {s}
+//                   </div>
+//                 ))}
+//               </motion.div>
+//             )}
+//           </AnimatePresence>
+//         </div>
+
+//         {/* Show All */}
+//         <button
+//           className="w-full bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600"
+//           onClick={handleShowAll}
+//         >
+//           Show All Cars
+//         </button>
+//       </motion.div>
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
 // // "use client";
 
 // // import { useState, useEffect } from "react";
@@ -1766,341 +2448,3 @@
 //   );
 // }
 
-
-// src\app\(mainLayout)\page.tsx
-"use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
-import { Search, Car, MapPin, DollarSign, X } from "lucide-react";
-
-// Filters arrays
-const states = ["All", "ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
-const makes = ["Toyota", "Ford", "Honda", "BMW", "Mercedes", "Tesla"];
-const models = ["Corolla", "Camry", "Civic", "Mustang", "Model 3", "X5"];
-const cities = ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide"];
-const bodyTypes = ["Sedan", "SUV", "Hatchback", "Coupe", "Convertible"];
-const minPrices = ["10000", "20000", "30000", "40000", "50000"];
-const maxPrices = ["50000", "100000", "150000", "200000", "250000"];
-
-// Background images (rename to avoid spaces)
-const bgImages = ["/background.png", "/background (2).png", "/backgroundx.png"];
-
-// Type for filters (moved here for reuse)
-export type Filters = {
-  make?: string;
-  model?: string;
-  minPrice?: string;
-  maxPrice?: string;
-  city?: string;
-  bodyType?: string;
-};
-
-export default function SearchPage() {
-  const router = useRouter();
-  const [activeState, setActiveState] = useState("All");
-  const [make, setMake] = useState("");
-  const [model, setModel] = useState("");
-  const [city, setCity] = useState("");
-  const [bodyType, setBodyType] = useState("");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [aiSearch, setAiSearch] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [bgIndex, setBgIndex] = useState(0);
-
-  // AI mock suggestions
-  useEffect(() => {
-    if (aiSearch.length > 2) {
-      const mockSuggestions = [
-        `Used ${aiSearch} in ${city || "Sydney"}`,
-        `${aiSearch} under ${maxPrice || "100000"}`,
-        `New ${aiSearch} ${bodyType || "Sedan"}`,
-      ].filter((s) => s.toLowerCase().includes(aiSearch.toLowerCase()));
-      setSuggestions(mockSuggestions.slice(0, 3));
-    } else {
-      setSuggestions([]);
-    }
-  }, [aiSearch, city, maxPrice, bodyType]);
-
-  // Background slideshow every 5s
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBgIndex((prev) => (prev + 1) % bgImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Function to parse AI search into filters
-  const parseAiSearch = (query: string): Partial<Filters> => {
-    const lowerQuery = query.toLowerCase();
-    const parsed: Partial<Filters> = {};
-
-    // Extract make/model (simple keyword match from your lists)
-    for (const m of makes) {
-      if (lowerQuery.includes(m.toLowerCase())) {
-        parsed.make = m;
-        break;
-      }
-    }
-    for (const mod of models) {
-      if (lowerQuery.includes(mod.toLowerCase())) {
-        parsed.model = mod;
-        break;
-      }
-    }
-
-    // Extract city (e.g., "in sydney")
-    const cityMatch = lowerQuery.match(/in\s+(\w+)/);
-    if (cityMatch && cities.includes(cityMatch[1].charAt(0).toUpperCase() + cityMatch[1].slice(1))) {
-      parsed.city = cityMatch[1].charAt(0).toUpperCase() + cityMatch[1].slice(1);
-    }
-
-    // Extract body type
-    for (const bt of bodyTypes) {
-      if (lowerQuery.includes(bt.toLowerCase())) {
-        parsed.bodyType = bt;
-        break;
-      }
-    }
-
-    // Extract prices (e.g., "under 50000", "over 10000", "between 20000 and 40000")
-    const underMatch = lowerQuery.match(/under\s+(\d+)/);
-    if (underMatch) parsed.maxPrice = underMatch[1];
-
-    const overMatch = lowerQuery.match(/(over|above)\s+(\d+)/);
-    if (overMatch) parsed.minPrice = overMatch[2];
-
-    const betweenMatch = lowerQuery.match(/between\s+(\d+)\s+and\s+(\d+)/);
-    if (betweenMatch) {
-      parsed.minPrice = betweenMatch[1];
-      parsed.maxPrice = betweenMatch[2];
-    }
-
-    // You can add more rules, e.g., for color (if added to filters), year, etc.
-    // For colors like "red", you'd need to add a color filter to your app and parsing logic.
-
-    return parsed;
-  };
-
-  const handleSubmit = () => {
-    setSuggestions([]);
-
-    // If aiSearch is provided, parse it and merge with existing filters
-    let mergedFilters = { make, model, city, bodyType, minPrice, maxPrice };
-    if (aiSearch) {
-      const parsed = parseAiSearch(aiSearch);
-      mergedFilters = { ...mergedFilters, ...parsed }; // Merge, AI overrides manual if conflict
-      // Update states for UI feedback
-      setMake(mergedFilters.make || "");
-      setModel(mergedFilters.model || "");
-      setCity(mergedFilters.city || "");
-      setBodyType(mergedFilters.bodyType || "");
-      setMinPrice(mergedFilters.minPrice || "");
-      setMaxPrice(mergedFilters.maxPrice || "");
-    }
-
-    const queryParams = new URLSearchParams();
-    if (activeState !== "All") queryParams.append("state", activeState);
-    if (mergedFilters.make) queryParams.append("make", mergedFilters.make);
-    if (mergedFilters.model) queryParams.append("model", mergedFilters.model);
-    if (mergedFilters.city) queryParams.append("city", mergedFilters.city);
-    if (mergedFilters.bodyType) queryParams.append("bodyType", mergedFilters.bodyType);
-    if (mergedFilters.minPrice) queryParams.append("minPrice", mergedFilters.minPrice);
-    if (mergedFilters.maxPrice) queryParams.append("maxPrice", mergedFilters.maxPrice);
-    // No need for ai param anymore, since we've parsed it
-
-    router.push(`/results?${queryParams.toString()}`);
-  };
-
-  const handleShowAll = () => router.push("/results");
-
-  const handleSuggestionClick = (s: string) => {
-    setAiSearch(s);
-    setSuggestions([]);
-  };
-
-  const handleClearFilters = () => {
-    setActiveState("All");
-    setMake("");
-    setModel("");
-    setCity("");
-    setBodyType("");
-    setMinPrice("");
-    setMaxPrice("");
-    setAiSearch("");
-    setSuggestions([]);
-    router.push("/results");
-  };
-
-  const activeFilters = [
-    activeState !== "All" && { label: activeState, setter: setActiveState },
-    make && { label: make, setter: setMake },
-    model && { label: model, setter: setModel },
-    city && { label: city, setter: setCity },
-    bodyType && { label: bodyType, setter: setBodyType },
-    minPrice && { label: `Min $${minPrice}`, setter: setMinPrice },
-    maxPrice && { label: `Max $${maxPrice}`, setter: setMaxPrice },
-  ].filter(Boolean) as { label: string; setter: (v: string) => void }[];
-
-  return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Background slideshow */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={bgIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1 }}
-          className="absolute inset-0 -z-10 w-full h-full"
-        >
-          <Image
-            src={bgImages[bgIndex]}
-            alt={`Background ${bgIndex}`}
-            fill
-            style={{ objectFit: "cover" }}
-            priority
-          />
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/40"></div>
-
-      {/* Main card */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.97 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        className="relative w-full max-w-4xl backdrop-blur-xl bg-white/40 dark:bg-gray-900/50 rounded-3xl shadow-2xl p-8 border border-white/20 z-10"
-      >
-        <h1 className="text-3xl font-extrabold text-center text-gray-100 mb-8">
-          Find Your Dream Vehicle
-        </h1>
-
-        {/* States */}
-        <div className="flex flex-wrap justify-center gap-2 mb-6">
-          {states.map((state) => (
-            <button
-              key={state}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                activeState === state
-                  ? "bg-red-500 text-white"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
-              }`}
-              onClick={() => setActiveState(state)}
-            >
-              {state}
-            </button>
-          ))}
-        </div>
-
-        {/* Filters Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          {([
-            ["Make", makes, make, setMake, Car],
-            ["Model", models, model, setModel, Car],
-            ["City", cities, city, setCity, MapPin],
-            ["Body Type", bodyTypes, bodyType, setBodyType, Car],
-            ["Min. Price", minPrices, minPrice, setMinPrice, DollarSign],
-            ["Max. Price", maxPrices, maxPrice, setMaxPrice, DollarSign],
-          ] as [string, string[], string, React.Dispatch<React.SetStateAction<string>>, any][]).map(
-            ([label, options, value, setter, Icon]) => (
-              <div key={label} className="relative">
-                <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-200" size={18} />
-                <select
-                  value={value}
-                  onChange={(e) => setter(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500"
-                >
-                  <option value="">{label}</option>
-                  {options.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )
-          )}
-        </div>
-
-        {/* Active Filters */}
-        {activeFilters.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            {activeFilters.map((f, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-1 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-200 px-3 py-1 rounded-full text-xs font-medium"
-              >
-                {f.label}
-                <X size={14} className="cursor-pointer" onClick={() => f.setter("")} />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* AI Search */}
-        <div className="relative mb-6">
-          <div className="flex gap-3">
-            <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-200" size={18} />
-              <input
-                type="text"
-                placeholder="AI Search e.g. 'Red Tesla in Sydney'"
-                value={aiSearch}
-                onChange={(e) => setAiSearch(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            <button
-              className="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-400 dark:hover:bg-gray-500 transition"
-              onClick={handleClearFilters}
-            >
-              Clear Filters
-            </button>
-            <button
-              className="bg-red-500 hover:bg-red-600 text-white px-6 rounded-lg text-sm font-semibold"
-              onClick={handleSubmit}
-            >
-              Search
-            </button>
-          </div>
-
-          {/* Suggestions */}
-          <AnimatePresence>
-            {suggestions.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="absolute z-20 w-full mt-2 bg-white/90 dark:bg-gray-800/90 rounded-lg shadow-lg border border-gray-300 dark:border-gray-700"
-              >
-                {suggestions.map((s, i) => (
-                  <div
-                    key={i}
-                    onClick={() => handleSuggestionClick(s)}
-                    className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-800 dark:text-white"
-                  >
-                    {s}
-                  </div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Show All */}
-        <button
-          className="w-full bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600"
-          onClick={handleShowAll}
-        >
-          Show All Cars
-        </button>
-      </motion.div>
-    </div>
-  );
-}

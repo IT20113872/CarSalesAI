@@ -7,25 +7,29 @@ import { useSearchParams } from "next/navigation";
 
 type Car = {
   id: number;
-  title: string;
-  make: string;
-  model: string;
-  year: number;
-  price: number;
-  city: string;
-  state: string;
-  odometer: number;
-  transmission: string;
-  fuel_type: string;
-  condition: string;
-  full_path: string;
+  vehicleId?: string;
+  title?: string;
+  year?: number;
+  make?: string;
+  model?: string;
+  price?: number;
+  display_city?: string;
+  display_state?: string;
+  odometer?: number;
+  transmission?: string;
+  body?: string;
+  fuel_type?: string;
+  full_path?: string;
+  status?: string;
+  scraped?: boolean;
+  car_id?: string;
+  batch_id?: string;
 };
 
 export default function ResultsPage() {
   const searchParams = useSearchParams();
   const isFetchingRef = useRef(false);
 
-  // Initialize filters from URL
   const initialFilters: Filters = {
     make: searchParams.get("make") || "",
     model: searchParams.get("model") || "",
@@ -41,7 +45,6 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // Fetch cars from API
   const fetchCars = async (cursor?: number) => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
@@ -56,10 +59,7 @@ export default function ResultsPage() {
     try {
       const res = await fetch(`/api/cars?${query.toString()}`);
       const data = await res.json();
-
-      // Ensure cars is always an array
       const fetchedCars: Car[] = Array.isArray(data.cars) ? data.cars : [];
-
       setCars((prev) => (cursor ? [...prev, ...fetchedCars] : fetchedCars));
       setNextCursor(data.nextCursor ?? null);
     } catch (error) {
@@ -73,17 +73,14 @@ export default function ResultsPage() {
     }
   };
 
-  // Initial fetch
   useEffect(() => {
     fetchCars();
   }, []);
 
-  // Refetch when filters change
   useEffect(() => {
     fetchCars();
   }, [filters]);
 
-  // Update filters when URL changes
   useEffect(() => {
     const urlFilters: Filters = {
       make: searchParams.get("make") || "",
@@ -102,16 +99,13 @@ export default function ResultsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 lg:p-8">
-      {/* Filter Bar */}
       <div className="overflow-x-auto mb-6">
         <div className="inline-flex gap-4">
           <CarFilters onFilter={handleFilter} initialFilters={filters} />
         </div>
       </div>
 
-      {/* Results Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {/* Skeleton loader */}
         {initialLoading &&
           Array.from({ length: 12 }).map((_, idx) => (
             <div
@@ -120,7 +114,6 @@ export default function ResultsPage() {
             ></div>
           ))}
 
-        {/* Car Cards */}
         <AnimatePresence>
           {(cars || []).map((car) => (
             <motion.div
@@ -129,36 +122,42 @@ export default function ResultsPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               layout
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 p-6 flex flex-col gap-3 min-h-[300px]"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 p-6 flex flex-col gap-3 min-h-[350px]"
             >
               <h2 className="font-bold text-lg text-gray-900 dark:text-gray-100">{car.title}</h2>
               <p className="text-gray-500 dark:text-gray-400 text-sm">
                 {car.year} • {car.make} • {car.model}
               </p>
               <p className="text-red-600 dark:text-red-400 font-semibold text-lg">
-                ${car.price.toLocaleString()}
+                ${car.price?.toLocaleString()}
               </p>
               <p className="text-gray-600 dark:text-gray-300 text-sm">
-                {car.city}, {car.state} | {car.odometer.toLocaleString()} km
+                {car.display_city}, {car.display_state} | {car.odometer?.toLocaleString()} km
               </p>
 
               <div className="flex flex-wrap gap-1 mt-1">
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                  {car.transmission}
-                </span>
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                  {car.fuel_type}
-                </span>
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                  {car.condition}
-                </span>
+                {car.transmission && (
+                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                    {car.transmission}
+                  </span>
+                )}
+                {car.fuel_type && (
+                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                    {car.fuel_type}
+                  </span>
+                )}
+                {car.status && (
+                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                    {car.status}
+                  </span>
+                )}
               </div>
 
               <a
                 href={car.full_path}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 text-center px-5 py-2 border-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-300 rounded-xl font-semibold hover:bg-blue-50 dark:hover:bg-blue-900 transition-all duration-300"
+                className="mt-auto text-center px-5 py-2 border-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-300 rounded-xl font-semibold hover:bg-blue-50 dark:hover:bg-blue-900 transition-all duration-300"
               >
                 See Details
               </a>
@@ -166,7 +165,6 @@ export default function ResultsPage() {
           ))}
         </AnimatePresence>
 
-        {/* No results */}
         {!initialLoading && (cars || []).length === 0 && (
           <p className="text-gray-700 dark:text-gray-300 text-center col-span-full">
             No cars found.
@@ -174,7 +172,6 @@ export default function ResultsPage() {
         )}
       </div>
 
-      {/* Load More Button */}
       {nextCursor && !loading && (
         <div className="flex justify-center mt-8">
           <button
@@ -186,13 +183,211 @@ export default function ResultsPage() {
         </div>
       )}
 
-      {/* Loading indicator */}
       {loading && !initialLoading && (
         <div className="flex justify-center mt-8 text-gray-700 dark:text-gray-300">Loading...</div>
       )}
     </div>
   );
 }
+
+
+
+
+// "use client";
+
+// import { useState, useEffect, useRef } from "react";
+// import CarFilters, { Filters } from "@/components/general/CarFilters";
+// import { motion, AnimatePresence } from "framer-motion";
+// import { useSearchParams } from "next/navigation";
+
+// type Car = {
+//   id: number;
+//   title: string;
+//   make: string;
+//   model: string;
+//   year: number;
+//   price: number;
+//   city: string;
+//   state: string;
+//   odometer: number;
+//   transmission: string;
+//   fuel_type: string;
+//   condition: string;
+//   full_path: string;
+// };
+
+// export default function ResultsPage() {
+//   const searchParams = useSearchParams();
+//   const isFetchingRef = useRef(false);
+
+//   // Initialize filters from URL
+//   const initialFilters: Filters = {
+//     make: searchParams.get("make") || "",
+//     model: searchParams.get("model") || "",
+//     minPrice: searchParams.get("minPrice") || "",
+//     maxPrice: searchParams.get("maxPrice") || "",
+//     city: searchParams.get("city") || "",
+//     bodyType: searchParams.get("bodyType") || "",
+//   };
+
+//   const [filters, setFilters] = useState<Filters>(initialFilters);
+//   const [cars, setCars] = useState<Car[]>([]);
+//   const [nextCursor, setNextCursor] = useState<number | null>(null);
+//   const [loading, setLoading] = useState(false);
+//   const [initialLoading, setInitialLoading] = useState(true);
+
+//   // Fetch cars from API
+//   const fetchCars = async (cursor?: number) => {
+//     if (isFetchingRef.current) return;
+//     isFetchingRef.current = true;
+//     setLoading(true);
+
+//     const query = new URLSearchParams({
+//       ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v)),
+//       limit: "12",
+//     });
+//     if (cursor) query.append("cursor", cursor.toString());
+
+//     try {
+//       const res = await fetch(`/api/cars?${query.toString()}`);
+//       const data = await res.json();
+
+//       // Ensure cars is always an array
+//       const fetchedCars: Car[] = Array.isArray(data.cars) ? data.cars : [];
+
+//       setCars((prev) => (cursor ? [...prev, ...fetchedCars] : fetchedCars));
+//       setNextCursor(data.nextCursor ?? null);
+//     } catch (error) {
+//       console.error("Failed to fetch cars", error);
+//       setCars([]);
+//       setNextCursor(null);
+//     } finally {
+//       setLoading(false);
+//       setInitialLoading(false);
+//       isFetchingRef.current = false;
+//     }
+//   };
+
+//   // Initial fetch
+//   useEffect(() => {
+//     fetchCars();
+//   }, []);
+
+//   // Refetch when filters change
+//   useEffect(() => {
+//     fetchCars();
+//   }, [filters]);
+
+//   // Update filters when URL changes
+//   useEffect(() => {
+//     const urlFilters: Filters = {
+//       make: searchParams.get("make") || "",
+//       model: searchParams.get("model") || "",
+//       minPrice: searchParams.get("minPrice") || "",
+//       maxPrice: searchParams.get("maxPrice") || "",
+//       city: searchParams.get("city") || "",
+//       bodyType: searchParams.get("bodyType") || "",
+//     };
+//     setFilters(urlFilters);
+//   }, [searchParams]);
+
+//   const handleFilter = (newFilters: Filters) => {
+//     setFilters(newFilters);
+//   };
+
+//   return (
+//     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 lg:p-8">
+//       {/* Filter Bar */}
+//       <div className="overflow-x-auto mb-6">
+//         <div className="inline-flex gap-4">
+//           <CarFilters onFilter={handleFilter} initialFilters={filters} />
+//         </div>
+//       </div>
+
+//       {/* Results Grid */}
+//       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+//         {/* Skeleton loader */}
+//         {initialLoading &&
+//           Array.from({ length: 12 }).map((_, idx) => (
+//             <div
+//               key={idx}
+//               className="animate-pulse bg-gray-200 dark:bg-gray-700 rounded-2xl h-64 w-full"
+//             ></div>
+//           ))}
+
+//         {/* Car Cards */}
+//         <AnimatePresence>
+//           {(cars || []).map((car) => (
+//             <motion.div
+//               key={car.id}
+//               initial={{ opacity: 0, y: 10 }}
+//               animate={{ opacity: 1, y: 0 }}
+//               exit={{ opacity: 0 }}
+//               layout
+//               className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 p-6 flex flex-col gap-3 min-h-[300px]"
+//             >
+//               <h2 className="font-bold text-lg text-gray-900 dark:text-gray-100">{car.title}</h2>
+//               <p className="text-gray-500 dark:text-gray-400 text-sm">
+//                 {car.year} • {car.make} • {car.model}
+//               </p>
+//               <p className="text-red-600 dark:text-red-400 font-semibold text-lg">
+//                 ${car.price.toLocaleString()}
+//               </p>
+//               <p className="text-gray-600 dark:text-gray-300 text-sm">
+//                 {car.city}, {car.state} | {car.odometer.toLocaleString()} km
+//               </p>
+
+//               <div className="flex flex-wrap gap-1 mt-1">
+//                 <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+//                   {car.transmission}
+//                 </span>
+//                 <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+//                   {car.fuel_type}
+//                 </span>
+//                 <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+//                   {car.condition}
+//                 </span>
+//               </div>
+
+//               <a
+//                 href={car.full_path}
+//                 target="_blank"
+//                 rel="noopener noreferrer"
+//                 className="mt-3 text-center px-5 py-2 border-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-300 rounded-xl font-semibold hover:bg-blue-50 dark:hover:bg-blue-900 transition-all duration-300"
+//               >
+//                 See Details
+//               </a>
+//             </motion.div>
+//           ))}
+//         </AnimatePresence>
+
+//         {/* No results */}
+//         {!initialLoading && (cars || []).length === 0 && (
+//           <p className="text-gray-700 dark:text-gray-300 text-center col-span-full">
+//             No cars found.
+//           </p>
+//         )}
+//       </div>
+
+//       {/* Load More Button */}
+//       {nextCursor && !loading && (
+//         <div className="flex justify-center mt-8">
+//           <button
+//             className="px-6 py-2 border-2 border-blue-600 dark:border-blue-500 text-blue-600 dark:text-blue-300 rounded-xl font-semibold hover:bg-blue-50 dark:hover:bg-blue-900 hover:shadow-lg transition-all duration-300"
+//             onClick={() => fetchCars(nextCursor)}
+//           >
+//             Load More
+//           </button>
+//         </div>
+//       )}
+
+//       {/* Loading indicator */}
+//       {loading && !initialLoading && (
+//         <div className="flex justify-center mt-8 text-gray-700 dark:text-gray-300">Loading...</div>
+//       )}
+//     </div>
+//   );
+// }
 
 
 

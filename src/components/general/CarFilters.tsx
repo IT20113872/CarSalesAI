@@ -10,6 +10,7 @@ export type Filters = {
   maxPrice?: string;
   city?: string;
   bodyType?: string;
+  state?: string;
 };
 
 type ModernCarFiltersProps = {
@@ -18,12 +19,14 @@ type ModernCarFiltersProps = {
 };
 
 // Example options
-const makes = ["Toyota", "Honda", "Ford", "BMW"];
-const models = ["Corolla", "Camry", "Civic", "Accord"];
-const cities = ["New York", "Los Angeles", "Chicago", "Houston"];
-const bodyTypes = ["SUV", "Sedan", "Hatchback", "Coupe"];
+const states = ["All", "ACT", "NSW", "NT", "QLD", "SA", "TAS", "VIC", "WA"];
+const makes = ["Toyota", "Honda", "Ford", "BMW", "Mercedes", "Tesla"];
+const models = ["Corolla", "Camry", "Civic", "Accord", "Mustang", "Model 3"];
+const cities = ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide"];
+const bodyTypes = ["SUV", "Sedan", "Hatchback", "Coupe", "Convertible"];
 
 export default function ModernCarFilters({ initialFilters, onFilter }: ModernCarFiltersProps) {
+  const [state, setState] = useState(initialFilters?.state || "All");
   const [make, setMake] = useState(initialFilters?.make || "");
   const [model, setModel] = useState(initialFilters?.model || "");
   const [minPrice, setMinPrice] = useState(initialFilters?.minPrice || "");
@@ -32,6 +35,7 @@ export default function ModernCarFilters({ initialFilters, onFilter }: ModernCar
   const [bodyType, setBodyType] = useState(initialFilters?.bodyType || "");
 
   useEffect(() => {
+    setState(initialFilters?.state || "All");
     setMake(initialFilters?.make || "");
     setModel(initialFilters?.model || "");
     setMinPrice(initialFilters?.minPrice || "");
@@ -42,10 +46,11 @@ export default function ModernCarFilters({ initialFilters, onFilter }: ModernCar
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onFilter({ make, model, minPrice, maxPrice, city, bodyType });
+    onFilter({ state, make, model, minPrice, maxPrice, city, bodyType });
   };
 
   const handleClear = () => {
+    setState("All");
     setMake("");
     setModel("");
     setMinPrice("");
@@ -60,6 +65,22 @@ export default function ModernCarFilters({ initialFilters, onFilter }: ModernCar
       onSubmit={handleSubmit}
       className="flex flex-wrap items-end gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg justify-start overflow-x-auto mb-6"
     >
+      {/* State */}
+      <div className="flex flex-col">
+        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">State</label>
+        <select
+          value={state}
+          onChange={(e) => setState(e.target.value)}
+          className="w-28 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+        >
+          {states.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Make */}
       <div className="flex flex-col">
         <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Make</label>
@@ -132,7 +153,7 @@ export default function ModernCarFilters({ initialFilters, onFilter }: ModernCar
           value={city}
           onChange={(e) => setCity(e.target.value)}
           placeholder="Any City"
-          className="w-32 pl-8 pr-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+          className="w-32 pl-3 pr-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
         />
         <datalist id="cities">
           {cities.map((c) => (
@@ -178,6 +199,187 @@ export default function ModernCarFilters({ initialFilters, onFilter }: ModernCar
     </form>
   );
 }
+
+// "use client";
+
+// import { useState, useEffect } from "react";
+// import { Car, MapPin, DollarSign } from "lucide-react";
+
+// export type Filters = {
+//   make?: string;
+//   model?: string;
+//   minPrice?: string;
+//   maxPrice?: string;
+//   city?: string;
+//   bodyType?: string;
+// };
+
+// type ModernCarFiltersProps = {
+//   initialFilters?: Filters;
+//   onFilter: (filters: Filters) => void;
+// };
+
+// // Example options
+// const makes = ["Toyota", "Honda", "Ford", "BMW"];
+// const models = ["Corolla", "Camry", "Civic", "Accord"];
+// const cities = ["New York", "Los Angeles", "Chicago", "Houston"];
+// const bodyTypes = ["SUV", "Sedan", "Hatchback", "Coupe"];
+
+// export default function ModernCarFilters({ initialFilters, onFilter }: ModernCarFiltersProps) {
+//   const [make, setMake] = useState(initialFilters?.make || "");
+//   const [model, setModel] = useState(initialFilters?.model || "");
+//   const [minPrice, setMinPrice] = useState(initialFilters?.minPrice || "");
+//   const [maxPrice, setMaxPrice] = useState(initialFilters?.maxPrice || "");
+//   const [city, setCity] = useState(initialFilters?.city || "");
+//   const [bodyType, setBodyType] = useState(initialFilters?.bodyType || "");
+
+//   useEffect(() => {
+//     setMake(initialFilters?.make || "");
+//     setModel(initialFilters?.model || "");
+//     setMinPrice(initialFilters?.minPrice || "");
+//     setMaxPrice(initialFilters?.maxPrice || "");
+//     setCity(initialFilters?.city || "");
+//     setBodyType(initialFilters?.bodyType || "");
+//   }, [initialFilters]);
+
+//   const handleSubmit = (e: React.FormEvent) => {
+//     e.preventDefault();
+//     onFilter({ make, model, minPrice, maxPrice, city, bodyType });
+//   };
+
+//   const handleClear = () => {
+//     setMake("");
+//     setModel("");
+//     setMinPrice("");
+//     setMaxPrice("");
+//     setCity("");
+//     setBodyType("");
+//     onFilter({});
+//   };
+
+//   return (
+//     <form
+//       onSubmit={handleSubmit}
+//       className="flex flex-wrap items-end gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg justify-start overflow-x-auto mb-6"
+//     >
+//       {/* Make */}
+//       <div className="flex flex-col">
+//         <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Make</label>
+//         <input
+//           list="makes"
+//           value={make}
+//           onChange={(e) => setMake(e.target.value)}
+//           placeholder="Any Make"
+//           className="w-32 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+//         />
+//         <datalist id="makes">
+//           {makes.map((m) => (
+//             <option key={m} value={m} />
+//           ))}
+//         </datalist>
+//       </div>
+
+//       {/* Model */}
+//       <div className="flex flex-col">
+//         <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Model</label>
+//         <input
+//           list="models"
+//           value={model}
+//           onChange={(e) => setModel(e.target.value)}
+//           placeholder="Any Model"
+//           className="w-32 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+//         />
+//         <datalist id="models">
+//           {models.map((m) => (
+//             <option key={m} value={m} />
+//           ))}
+//         </datalist>
+//       </div>
+
+//       {/* Min Price */}
+//       <div className="flex flex-col relative">
+//         <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Min Price</label>
+//         <div className="relative">
+//           <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+//           <input
+//             type="number"
+//             value={minPrice}
+//             onChange={(e) => setMinPrice(e.target.value)}
+//             placeholder="0"
+//             className="w-24 pl-8 pr-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+//           />
+//         </div>
+//       </div>
+
+//       {/* Max Price */}
+//       <div className="flex flex-col relative">
+//         <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Max Price</label>
+//         <div className="relative">
+//           <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+//           <input
+//             type="number"
+//             value={maxPrice}
+//             onChange={(e) => setMaxPrice(e.target.value)}
+//             placeholder="Any"
+//             className="w-24 pl-8 pr-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+//           />
+//         </div>
+//       </div>
+
+//       {/* City */}
+//       <div className="flex flex-col relative">
+//         <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">City</label>
+//         <input
+//           list="cities"
+//           value={city}
+//           onChange={(e) => setCity(e.target.value)}
+//           placeholder="Any City"
+//           className="w-32 pl-8 pr-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+//         />
+//         <datalist id="cities">
+//           {cities.map((c) => (
+//             <option key={c} value={c} />
+//           ))}
+//         </datalist>
+//       </div>
+
+//       {/* Body Type */}
+//       <div className="flex flex-col">
+//         <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Body Type</label>
+//         <input
+//           list="bodyTypes"
+//           value={bodyType}
+//           onChange={(e) => setBodyType(e.target.value)}
+//           placeholder="Any"
+//           className="w-28 px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+//         />
+//         <datalist id="bodyTypes">
+//           {bodyTypes.map((b) => (
+//             <option key={b} value={b} />
+//           ))}
+//         </datalist>
+//       </div>
+
+//       {/* Buttons */}
+//       <div className="flex gap-2 mt-1">
+//         <button
+//           type="submit"
+//           className="h-10 px-5 bg-transparent text-blue-500 font-semibold rounded-xl border-2 border-blue-500 hover:bg-blue-500 hover:text-white transition"
+//         >
+//           Filter
+//         </button>
+
+//         <button
+//           type="button"
+//           onClick={handleClear}
+//           className="h-10 px-4 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+//         >
+//           Clear
+//         </button>
+//       </div>
+//     </form>
+//   );
+// }
 
 
 
