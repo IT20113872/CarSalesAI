@@ -1,15 +1,15 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
+  "/api/webhook/stripe/route": "app/api/webhook/stripe/route.js",
   "/api/cars/route": "app/api/cars/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/api/webhook/stripe/route": "app/api/webhook/stripe/route.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/api/uploadthing/route": "app/api/uploadthing/route.js",
-  "/payment/cancel/page": "app/payment/cancel/page.js",
   "/login/page": "app/login/page.js",
+  "/payment/success/page": "app/payment/success/page.js",
   "/name/page": "app/name/page.js",
   "/onboarding/page": "app/onboarding/page.js",
-  "/payment/success/page": "app/payment/success/page.js",
+  "/payment/cancel/page": "app/payment/cancel/page.js",
   "/(mainLayout)/post-job/page": "app/(mainLayout)/post-job/page.js",
   "/(mainLayout)/results/page": "app/(mainLayout)/results/page.js",
   "/(mainLayout)/page": "app/(mainLayout)/page.js"
