@@ -78,30 +78,6 @@
         "x-next-revalidate-tag-token"
       ]
     },
-    "/login": {
-      "experimentalBypassFor": [
-        {
-          "type": "header",
-          "key": "Next-Action"
-        },
-        {
-          "type": "header",
-          "key": "content-type",
-          "value": "multipart/form-data;.*"
-        }
-      ],
-      "initialRevalidateSeconds": false,
-      "srcRoute": "/login",
-      "dataRoute": "/login.rsc",
-      "allowHeader": [
-        "host",
-        "x-matched-path",
-        "x-prerender-revalidate",
-        "x-prerender-revalidate-if-generated",
-        "x-next-revalidated-tags",
-        "x-next-revalidate-tag-token"
-      ]
-    },
     "/payment/success": {
       "experimentalBypassFor": [
         {
@@ -125,13 +101,37 @@
         "x-next-revalidated-tags",
         "x-next-revalidate-tag-token"
       ]
+    },
+    "/login": {
+      "experimentalBypassFor": [
+        {
+          "type": "header",
+          "key": "Next-Action"
+        },
+        {
+          "type": "header",
+          "key": "content-type",
+          "value": "multipart/form-data;.*"
+        }
+      ],
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/login",
+      "dataRoute": "/login.rsc",
+      "allowHeader": [
+        "host",
+        "x-matched-path",
+        "x-prerender-revalidate",
+        "x-prerender-revalidate-if-generated",
+        "x-next-revalidated-tags",
+        "x-next-revalidate-tag-token"
+      ]
     }
   },
   "dynamicRoutes": {},
   "notFoundRoutes": [],
   "preview": {
-    "previewModeId": "81a23d57a5fbe2f721756b4897591a4e",
-    "previewModeSigningKey": "0a62bdddab7d18b5f57a4d0994e90d06b2d56c116ea1a5c1560c2e3d3c770d1f",
-    "previewModeEncryptionKey": "6c2ca6ab4d8cb9cb52311b9eb3a598c292f43c5c2aaf7b935eaae8e3152ee1df"
+    "previewModeId": "87a796e84e3403f39597346977e87dca",
+    "previewModeSigningKey": "ab244ed92f9da1404de655f5bb265faf88c0b1be59b8cb91f898d993d21d75ab",
+    "previewModeEncryptionKey": "66bd996dce45ba281c427ca49328b9574f84b2e23bd1fee9b0cff24588458029"
   }
 }
