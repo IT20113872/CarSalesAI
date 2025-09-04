@@ -24,9 +24,9 @@ export async function Navbar() {
         </h1>
       </Link>
 
-      {/* <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4">
         <Themetoggle />
-        <Link href="/xpost-job" className={buttonVariants({ size: "lg" })}>
+        {/* <Link href="/xpost-job" className={buttonVariants({ size: "lg" })}>
           Post Ad
         </Link>
         {session?.user ? (
@@ -42,8 +42,8 @@ export async function Navbar() {
           >
             Login
           </Link>
-        )}
-      </div> */}
+        )} */}
+      </div>
      
 </nav>
   );    
